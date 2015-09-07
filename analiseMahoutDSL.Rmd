@@ -1,0 +1,234 @@
+---
+title: "Análise entre Mahout-Spark e DSL"
+author: "Rodolfo Viana"
+date: "04-09-2015"
+output: html_document
+---
+
+Análise Mahout utilizando Spark, para as entradas de 10, 25, 50, 100M utilizando 0, 1, 2, 3 e 7 slaves. 
+
+
+```{r,  fig.align='center', message=FALSE}
+# Carrregando bibliotecas
+library(dplyr)
+library(ggplot2)
+
+# Carregando dados
+data <- read.csv("~/Projetos/AnaliseDSL/spark-mahout.csv")
+
+# Transformando em númerico
+data$time_in_minute <- as.numeric(gsub(",", ".", data$time_in_minute))
+data$time_in_hour <- as.numeric(gsub(",", ".", data$time_in_hour))
+
+# Agrupando por input size e slaves
+by_input_slaves <- group_by(data, input_size,slaves)
+
+# Análise do tempo em segundos
+data_bySec <- summarise(by_input_slaves, mean(time_in_second))
+colnames(data_bySec) <- c("input_size","slaves","time_in_second")
+data_bySec$input_size <- as.factor(data_bySec$input_size)
+data_bySec$slaves <- as.factor(data_bySec$slaves)
+
+# Em minutos 
+
+data_byMin <- summarise(by_input_slaves, mean(time_in_minute))
+colnames(data_byMin) <- c("input_size","slaves","time_in_minute")
+data_byMin$slaves <- as.factor(data_byMin$slaves)
+data_byMin$input_size <- as.factor(data_byMin$input_size)
+
+ggplot(data=data_byMin, aes(x=slaves, y=time_in_minute, group=input_size, colour=input_size)) +
+  geom_line() + 
+  geom_point() +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Mahout-Spark") +
+  coord_cartesian(ylim = c(0, 550))  +
+  theme(panel.background=element_blank())
+```
+
+
+Análise DSL, para as entradas de 10, 25, 50, 100M utilizando 0, 1, 2, 3 e slaves. 
+
+
+```{r,  fig.align='center', message=FALSE}
+# Carregando dados
+dsl <- read.csv("~/Projetos/AnaliseDSL/dsl.csv")
+
+# Transformando em númerico
+dsl$time_in_minute <- as.numeric(gsub(",", ".", dsl$time_in_minute))
+dsl$time_in_hour <- as.numeric(gsub(",", ".", dsl$time_in_hour))
+
+# Agrupando por input size e slaves
+by_input_slaves_dsl <- group_by(dsl, input_size,slaves)
+
+# Em minutos 
+data_byMin_dsl <- summarise(by_input_slaves_dsl, mean(time_in_minute))
+colnames(data_byMin_dsl) <- c("input_size","slaves","time_in_minute")
+data_byMin_dsl$slaves <- as.factor(data_byMin_dsl$slaves)
+data_byMin_dsl$input_size <- as.factor(data_byMin_dsl$input_size)
+
+ggplot(data=data_byMin_dsl, aes(x=slaves, y=time_in_minute, group=input_size, colour=input_size)) +
+  geom_line() + 
+  geom_point() + 
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "DSL") +
+  coord_cartesian(ylim = c(0, 550))  +
+  theme(panel.background=element_blank())
+```
+
+
+Essa análise foi criada com o intuito de comparar as execuções utilizando a DSL com a execução utilizando Mahout-Spark.
+
+```{r, warning=FALSE, fig.align='center', message=FALSE}
+data <- read.csv("/home/rodolfo/Projetos/AnaliseDSL/mahout_and_dsl.csv")
+data$time_in_minute <- as.numeric(gsub(",", ".", data$time_in_minute))
+data$time_in_hour <- as.numeric(gsub(",", ".", data$time_in_hour))
+data$input_size <- as.factor(data$input_size)
+data$slaves <- as.factor(data$slaves)
+
+dsl <- data %>%
+  filter(is_dsl == 1)
+
+mahout <- data %>%
+  filter(is_dsl == 0)
+
+dsl_10 <- dsl %>%
+  filter(input_size == 10) 
+
+mahout_10 <- mahout %>%
+  filter(input_size == 10)
+
+# Agrupando por input size e slaves
+by_input_slaves_mahout <- group_by(mahout_10, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_mahout <- summarise(by_input_slaves_mahout, mean(time_in_minute))
+colnames(data_byMinute_mahout) <- c("input_size","slaves","time_in_minute")
+data_byMinute_mahout$execução <- "Mahout"
+
+# Agrupando por input size e slaves
+by_input_slaves_dsl <- group_by(dsl_10, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_dsl <- summarise(by_input_slaves_dsl, mean(time_in_minute))
+colnames(data_byMinute_dsl) <- c("input_size","slaves","time_in_minute")
+data_byMinute_dsl$execução <- "DSL"
+
+input10 <- rbind(data_byMinute_dsl, data_byMinute_mahout)
+
+ggplot(input10, aes(x = slaves, y=time_in_minute, colour = execução )) + 
+  geom_point( aes(shape=execução ),  size = 4 ) +
+  coord_cartesian(ylim = c(0, max(input10$time_in_minute)+3))  +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Input de 10M") +
+  theme(panel.background=element_blank())
+```
+
+Análise para o input de 25M
+
+```{r, fig.align='center'}
+dsl_25 <- dsl %>%
+  filter(input_size == 25) 
+
+mahout_25 <- mahout %>%
+  filter(input_size == 25)
+
+# Agrupando por input size e slaves
+by_input_slaves_mahout <- group_by(mahout_25, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_mahout <- summarise(by_input_slaves_mahout, mean(time_in_minute))
+colnames(data_byMinute_mahout) <- c("input_size","slaves","time_in_minute")
+data_byMinute_mahout$execução <- "Mahout"
+
+# Agrupando por input size e slaves
+by_input_slaves_dsl <- group_by(dsl_25, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_dsl <- summarise(by_input_slaves_dsl, mean(time_in_minute))
+colnames(data_byMinute_dsl) <- c("input_size","slaves","time_in_minute")
+data_byMinute_dsl$execução <- "DSL"
+
+input25 <- rbind(data_byMinute_dsl, data_byMinute_mahout)
+
+ggplot(input25, aes(x = slaves, y=time_in_minute, colour = execução)) + 
+  geom_point( aes(shape=execução),  size = 4 ) +
+  coord_cartesian(ylim = c(0, max(input25$time_in_minute)+10))  +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Input de 25M") +
+  theme(panel.background=element_blank())
+```
+
+Análise para o input de 50M
+
+```{r, fig.align='center'}
+dsl_50 <- dsl %>%
+  filter(input_size == 50) 
+
+mahout_50 <- mahout %>%
+  filter(input_size == 50)
+
+# Agrupando por input size e slaves
+by_input_slaves_mahout <- group_by(mahout_50, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_mahout <- summarise(by_input_slaves_mahout, mean(time_in_minute))
+colnames(data_byMinute_mahout) <- c("input_size","slaves","time_in_minute")
+data_byMinute_mahout$execução <- "Mahout"
+
+# Agrupando por input size e slaves
+by_input_slaves_dsl <- group_by(dsl_50, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_dsl <- summarise(by_input_slaves_dsl, mean(time_in_minute))
+colnames(data_byMinute_dsl) <- c("input_size","slaves","time_in_minute")
+data_byMinute_dsl$execução <- "DSL"
+
+input50 <- rbind(data_byMinute_dsl, data_byMinute_mahout)
+
+
+ggplot(input50, aes(x = slaves, y=time_in_minute, colour = execução )) + 
+  geom_point( aes(shape=execução ),  size = 4 ) +
+  coord_cartesian(ylim = c(0, max(input50$time_in_minute)+20))  +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Input de 50M") +
+  theme(panel.background=element_blank())
+```
+
+Análise para o input de 100M
+
+```{r, fig.align='center'}
+dsl_100 <- dsl %>%
+  filter(input_size == 100) 
+
+mahout_100 <- mahout %>%
+  filter(input_size == 100)
+
+# Agrupando por input size e slaves
+by_input_slaves_mahout <- group_by(mahout_100, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_mahout <- summarise(by_input_slaves_mahout, mean(time_in_minute))
+colnames(data_byMinute_mahout) <- c("input_size","slaves","time_in_minute")
+data_byMinute_mahout$execução <- "Mahout"
+
+# Agrupando por input size e slaves
+by_input_slaves_dsl <- group_by(dsl_100, input_size,slaves)
+
+# Análise do tempo em segundos
+data_byMinute_dsl <- summarise(by_input_slaves_dsl, mean(time_in_minute))
+colnames(data_byMinute_dsl) <- c("input_size","slaves","time_in_minute")
+data_byMinute_dsl$execução <- "DSL"
+
+input100 <- rbind(data_byMinute_dsl, data_byMinute_mahout)
+
+
+ggplot(input100, aes(x = slaves, y=time_in_minute, colour = execução )) + 
+  geom_point( aes(shape=execução ),  size = 4 ) +
+  coord_cartesian(ylim = c(0, max(input100$time_in_minute)+20))  +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Input de 100M") +
+  theme(panel.background=element_blank())
+
+#input <- rbind(input10, input50, input25, input100)
+
+#ggplot(input, aes(x = slaves, y=time_in_minute, colour = execução, size=input_size )) + 
+#  geom_point() +
+#  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Todas as entradas") +
+#  theme(panel.background=element_blank())
+
+```
+
