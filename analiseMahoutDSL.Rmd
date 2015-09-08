@@ -77,7 +77,7 @@ ggplot(data=data_byMin_dsl, aes(x=slaves, y=time_in_minute, group=input_size, co
 Essa análise foi criada com o intuito de comparar as execuções utilizando a DSL com a execução utilizando Mahout-Spark.
 
 ```{r, warning=FALSE, fig.align='center', message=FALSE}
-data <- read.csv("/home/rodolfo/Projetos/AnaliseDSL/mahout_and_dsl.csv")
+data <- read.csv("~/Projetos/AnaliseDSL/mahout_and_dsl.csv")
 data$time_in_minute <- as.numeric(gsub(",", ".", data$time_in_minute))
 data$time_in_hour <- as.numeric(gsub(",", ".", data$time_in_hour))
 data$input_size <- as.factor(data$input_size)
@@ -232,3 +232,141 @@ ggplot(input100, aes(x = slaves, y=time_in_minute, colour = execução )) +
 
 ```
 
+Todos os pontos
+
+```{r, warning=FALSE, fig.align='center', message=FALSE}
+data <- read.csv("~/Projetos/AnaliseDSL/mahout_and_dsl.csv")
+data$time_in_minute <- as.numeric(gsub(",", ".", data$time_in_minute))
+data$time_in_hour <- as.numeric(gsub(",", ".", data$time_in_hour))
+data$input_size <- as.factor(data$input_size)
+data$slaves <- as.factor(data$slaves)
+
+dsl <- data %>%
+  filter(is_dsl == 1)
+
+mahout <- data %>%
+  filter(is_dsl == 0)
+
+dsl_10 <- dsl %>%
+  filter(input_size == 10) 
+
+mahout_10 <- mahout %>%
+  filter(input_size == 10)
+
+mahout_10 <- mahout_10[sample(1:nrow(mahout_10), 5),]
+
+mahout_10$execução <- "Mahout"
+dsl_10$execução <- "DSL"
+
+input10 <- rbind(dsl_10 , mahout_10)
+
+ggplot(input10, aes(x = slaves, y=time_in_minute, colour = execução )) + 
+  geom_point(  ) +
+  coord_cartesian(ylim = c(0, max(input10$time_in_minute)+3))  +
+  labs(y='Média dos tempos em minutos', x='Número de slaves', title = "Input de 10M") +
+  theme(panel.background=element_blank())
+```
+
+Com intervalor de confiança
+
+```{r, warning=FALSE, fig.align='center', message=FALSE}
+data <- read.csv("~/Projetos/AnaliseDSL/mahout_and_dsl.csv")
+data$time_in_minute <- as.numeric(gsub(",", ".", data$time_in_minute))
+data$time_in_hour <- as.numeric(gsub(",", ".", data$time_in_hour))
+data$input_size <- as.factor(data$input_size)
+data$slaves <- as.factor(data$slaves)
+
+dsl <- data %>%
+  filter(is_dsl == 1)
+
+mahout <- data %>%
+  filter(is_dsl == 0)
+
+dsl_10 <- dsl %>%
+  filter(input_size == 10) %>%
+  filter(slaves == 0)
+
+mahout_10 <- mahout %>%
+  filter(input_size == 10)  %>%
+  filter(slaves == 0)
+
+mahout_10 <- mahout_10[sample(1:nrow(mahout_10), 5),]
+
+mahout_10_1 <- mahout %>%
+  filter(input_size == 10)  %>%
+  filter(slaves == 1)
+
+mahout_10_1 <- mahout_10_1[sample(1:nrow(mahout_10_1), 5),]
+
+dsl_10_2 <- dsl %>%
+  filter(input_size == 10) %>%
+  filter(slaves == 2)
+
+mahout_10_2 <- mahout %>%
+  filter(input_size == 10)  %>%
+  filter(slaves == 2)
+
+mahout_10_2 <- mahout_10_2[sample(1:nrow(mahout_10_2), 5),]
+
+dsl_10_3 <- dsl %>%
+  filter(input_size == 10) %>%
+  filter(slaves == 3)
+
+mahout_10_3 <- mahout %>%
+  filter(input_size == 10)  %>%
+  filter(slaves == 3)
+
+mahout_10_3 <- mahout_10_3[sample(1:nrow(mahout_10_3), 5),]
+
+testdsl_10 <- t.test(dsl_10$time_in_minute)
+testmahout_10 <- t.test(mahout_10$time_in_minute)
+ic_1 = c(testdsl_10 $conf.int[1],testdsl_10 $conf.int[2])
+ic_2 = c(testmahout_10$conf.int[1],testmahout_10$conf.int[2])
+
+mahout_10$execução <- "Mahout"
+dsl_10$execução <- "DSL"
+
+samples <- rbind(dsl_10,mahout_10)
+
+toPlot <- summarise(group_by(samples, execução, input_size,slaves), mean = mean(time_in_minute))
+toPlot$lower <- c(ic_1[1],ic_2[1])
+toPlot$upper <- c(ic_1[2],ic_2[2])
+
+
+testdsl_10 <- t.test(dsl_10_2$time_in_minute)
+testmahout_10 <- t.test(mahout_10_2$time_in_minute)
+ic_1 = c(testdsl_10 $conf.int[1],testdsl_10 $conf.int[2])
+ic_2 = c(testmahout_10$conf.int[1],testmahout_10$conf.int[2])
+
+mahout_10_2$execução <- "Mahout"
+dsl_10_2$execução <- "DSL"
+
+samples <- rbind(dsl_10_2,mahout_10_2)
+
+toPlot_1 <- summarise(group_by(samples, execução, input_size,slaves), mean = mean(time_in_minute))
+toPlot_1$lower <- c(ic_1[1],ic_2[1])
+toPlot_1$upper <- c(ic_1[2],ic_2[2])
+
+testdsl_10 <- t.test(dsl_10_3$time_in_minute)
+testmahout_10 <- t.test(mahout_10_3$time_in_minute)
+ic_1 = c(testdsl_10 $conf.int[1],testdsl_10 $conf.int[2])
+ic_2 = c(testmahout_10$conf.int[1],testmahout_10$conf.int[2])
+
+mahout_10_3$execução <- "Mahout"
+dsl_10_3$execução <- "DSL"
+
+samples <- rbind(dsl_10_3,mahout_10_3)
+
+toPlot_2 <- summarise(group_by(samples, execução, input_size,slaves), mean = mean(time_in_minute))
+toPlot_2$lower <- c(ic_1[1],ic_2[1])
+toPlot_2$upper <- c(ic_1[2],ic_2[2])
+
+
+toPlot_3 <- rbind(toPlot_1,toPlot, toPlot_2)
+
+ggplot(toPlot_3, aes(x = slaves, y=mean, colour = execução )) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=lower, ymax=upper), width=.1) +
+  labs(y='Média do tempo em min', x='Número de slaves') +
+  theme(panel.background=element_blank())
+```
